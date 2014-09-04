@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Sample/Sample.iml" filepath="$PROJECT_DIR$/Sample/Sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SwipeCardEntry.iml" filepath="$PROJECT_DIR$/SwipeCardEntry.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SwipeCardEntryLibrary/SwipeCardEntryLibrary.iml" filepath="$PROJECT_DIR$/SwipeCardEntryLibrary/SwipeCardEntryLibrary.iml" />
+    </modules>
+  </component>
+</project>
+
