@@ -122,19 +122,20 @@ public class TestSwipeCardEntry extends View {
             return false;
         }
 
-                /**
+        /**
          * Validates the credit card number using the luhn algorithm, returns true if valid.
+         *
          * @param number the number to validate.
          * @return true if valid.
          */
         boolean validateNumber(CharSequence number) {
             int sum = 0;
             final int size = number.length();
-            final int checkDigit = number.charAt(size-1) - '0';
+            final int checkDigit = number.charAt(size - 1) - '0';
 
             boolean doubleDigit = true;
 
-            for (int index = size-1; --index >= 0; doubleDigit = !doubleDigit) {
+            for (int index = size - 1; --index >= 0; doubleDigit = !doubleDigit) {
                 int digit = number.charAt(index) - '0';
 
                 if (doubleDigit) {
@@ -541,7 +542,8 @@ public class TestSwipeCardEntry extends View {
         ColorStateList textColor = null;
         ColorStateList hintColor = null;
         int errorColor = Color.RED;
-        int textSize = SpToPixels(context,15); //context.getTheme().applyStyle().getTextAppearance.SM;
+        int textSize = SpToPixels(context,
+                15); //context.getTheme().applyStyle().getTextAppearance.SM;
 
         if (attrs != null) {
             TypedArray attributes = context
@@ -621,7 +623,6 @@ public class TestSwipeCardEntry extends View {
                 case CVC:
                     if (mCVC.length() > 0) {
                         removeLastChar(mCVC);
-                        checkIsCompleted();
                         break;
                     } else {
                         //we are going back to number mode:
@@ -701,9 +702,8 @@ public class TestSwipeCardEntry extends View {
                             }
 
                             if (mMonth.length() == 2) {
-                                //validate
                                 int month = Integer.parseInt(mMonth.toString());
-                                if ((month >= 1)&&(month <= 12)) {
+                                if ((month >= 1) && (month <= 12)) {
                                     mExpiryFormatted.append('/');
                                     mMode = Mode.EXPIRYYEAR;
                                 }
@@ -720,24 +720,28 @@ public class TestSwipeCardEntry extends View {
                                 mExpiryFormatted.append(numberAsString);
                             }
                         } else if (yearLength == 1) {
-                                mYear.append(numberAsString);
+                            mYear.append(numberAsString);
 
-                                Calendar calendar = Calendar.getInstance();
-                                int actualYear = calendar.get(Calendar.YEAR);
-                                int enteredYear = 2000 + Integer.parseInt(mYear.toString());
+                            Calendar calendar = Calendar.getInstance();
+                            int actualYear = calendar.get(Calendar.YEAR);
+                            int enteredYear = 2000 + Integer.parseInt(mYear.toString());
 
-                                if (actualYear == enteredYear) {
-                                    //validate the month
-                                    int actualMonth = calendar.get(Calendar.MONTH) + 1;
-                                    int enteredMonth = Integer.parseInt(mMonth.toString());
-                                    if (actualMonth <= enteredMonth) {
-                                        mExpiryFormatted.append(numberAsString);
-                                        mMode = Mode.CVC;
-                                    }
-                                } else if (actualYear < enteredYear) {
+                            if (actualYear == enteredYear) {
+                                //validate the month
+                                int actualMonth = calendar.get(Calendar.MONTH) + 1;
+                                int enteredMonth = Integer.parseInt(mMonth.toString());
+                                if (actualMonth <= enteredMonth) {
                                     mExpiryFormatted.append(numberAsString);
                                     mMode = Mode.CVC;
+                                } else {
+                                    removeLastChar(mYear);
                                 }
+                            } else if (actualYear < enteredYear) {
+                                mExpiryFormatted.append(numberAsString);
+                                mMode = Mode.CVC;
+                            } else {
+                                removeLastChar(mYear);
+                            }
                         }
                         break;
                     case CVC:
