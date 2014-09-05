@@ -107,7 +107,6 @@ public class TestSwipeCardEntry extends View {
                 return validateNumber(match);
             }
             return false;
-//            return mWhole.matcher(match).matches();
         }
 
         boolean isCorrectLength(int length) {
@@ -579,15 +578,11 @@ public class TestSwipeCardEntry extends View {
         final Resources resources = getResources();
 
         mTextPaint = new TextPaint();
-//        mTextPaint.setTextSize(resources.getDimension(R.dimen.textsize_normal));
-//        mTextPaint.setTextSize(resources.getDimension(R.dimen.textsize_normal));
         mTextPaint.setTextSize(textSize);
         mTextPaint.setAntiAlias(true);
         mTextPaint.setColor(textColor.getDefaultColor());
-//        mTextPaint.setColor(errorColor);
 
         mHintPaint = new TextPaint(mTextPaint);
-//        mHintPaint.setColor(resources.getColor(android.R.color.darker_gray));
         mHintPaint.setColor(hintColor.getDefaultColor());
 
         mErrorPaint = new TextPaint(mTextPaint);
@@ -717,17 +712,6 @@ public class TestSwipeCardEntry extends View {
                         }
                         break;
                     case EXPIRYYEAR:
-//                        Calendar calendar = Calendar.getInstance();
-//                        final int minYear = calendar.get(Calendar.YEAR) - 2000;
-//                        final int minMonth = calendar.get(Calendar.MONTH) + 1;
-//
-//                        if ()
-
-                        //say we have a number like:
-                        //1409
-                        //
-
-
                         final int yearLength = mYear.length();
 
                         if (yearLength == 0) {
@@ -736,12 +720,6 @@ public class TestSwipeCardEntry extends View {
                                 mExpiryFormatted.append(numberAsString);
                             }
                         } else if (yearLength == 1) {
-
-//                            if (mYear.charAt(0) == '1') {
-//                                if (number >= 4) {
-//                                    mYear.append(numberAsString);
-//                                }
-//                            } else {
                                 mYear.append(numberAsString);
 
                                 Calendar calendar = Calendar.getInstance();
@@ -752,7 +730,7 @@ public class TestSwipeCardEntry extends View {
                                     //validate the month
                                     int actualMonth = calendar.get(Calendar.MONTH) + 1;
                                     int enteredMonth = Integer.parseInt(mMonth.toString());
-                                    if (actualMonth > enteredMonth) {
+                                    if (actualMonth <= enteredMonth) {
                                         mExpiryFormatted.append(numberAsString);
                                         mMode = Mode.CVC;
                                     }
@@ -760,26 +738,6 @@ public class TestSwipeCardEntry extends View {
                                     mExpiryFormatted.append(numberAsString);
                                     mMode = Mode.CVC;
                                 }
-//                            }
-
-//                            if (mYear.length() == 2) {
-//                                Calendar calendar = Calendar.getInstance();
-//                                int actualYear = calendar.get(Calendar.YEAR);
-//                                int enteredYear = 2000 + Integer.parseInt(mYear.toString());
-//
-//                                if (actualYear == enteredYear) {
-//                                    validate the month
-//                                    int actualMonth = calendar.get(Calendar.MONTH) + 1;
-//                                    int enteredMonth = Integer.parseInt(mMonth.toString());
-//                                    if (actualMonth > enteredMonth) {
-//                                        mExpiryFormatted.append(numberAsString);
-//                                        mMode = Mode.CVC;
-//                                    }
-//                                } else if (actualYear < enteredYear) {
-//                                    mExpiryFormatted.append(numberAsString);
-//                                    mMode = Mode.CVC;
-//                                }
-//                            }
                         }
                         break;
                     case CVC:
@@ -802,7 +760,7 @@ public class TestSwipeCardEntry extends View {
             }
         }
 
-        return CardType.MASTERCARD;
+        return CardType.UNKNOWN;
     }
 
     private void setCardType(CardType type) {
