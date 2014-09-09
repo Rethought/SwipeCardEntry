@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
 
         mSwipeCardEntry = (TestSwipeCardEntry) findViewById(R.id.swipecardentry);
         mSwipeCardEntry.setNumber("424242424242424");
+//        mSwipeCardEntry.setNumber("224242424242424");
         mPayButton = (Button) findViewById(R.id.paybutton);
 
         mSwipeCardEntry.setListener(new TestSwipeCardEntry.Listener() {

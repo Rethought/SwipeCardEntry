@@ -461,7 +461,15 @@ public class TestSwipeCardEntry extends View {
         mNumberFormatted.append(number);
 
         if (mNumber.length() >= 2) {
-            setCardType(guessCardType(mNumber.subSequence(0,2)));
+            CharSequence firstTwoDigis = mNumber.subSequence(0,2);
+            setCardType(guessCardType(firstTwoDigis));
+            if (mCardType == CardType.UNKNOWN) {
+                mNumber.clear();
+                mNumberFormatted.clear();
+                mNumber.append(firstTwoDigis);
+                mNumberFormatted.append(firstTwoDigis);
+                mError = true;
+            }
         }
 
         for (int index = mCardType.mBreaks.length; --index >= 0; ) {
@@ -673,6 +681,9 @@ public class TestSwipeCardEntry extends View {
                             //do nothing
                         } else if (length == 2) {
                             setCardType(guessCardType(mNumber));
+                            if (mCardType == CardType.UNKNOWN) {
+                                mError = true;
+                            }
                         } else if (mCardType.isCorrectLength(length)) {
                             validateNumber();
                         }
