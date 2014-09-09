@@ -53,6 +53,8 @@ public class TestSwipeCardEntry extends View {
 
     private static final String CVC_HINT = "CVC";
 
+    private static final String AMEX_CVC_HINT = "4DBC";
+
     private static final int IMAGE_BUFFER_PADDING = 25;
 
     private static final int BLINK_DURATION = 500;
@@ -65,13 +67,14 @@ public class TestSwipeCardEntry extends View {
     }
 
     private enum CardType {
-        UNKNOWN("", "", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{}, 0),
+        UNKNOWN("", "", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{},
+                CVC_HINT),
         VISA("^4[0-9]$", "^4[0-9]{6,}$", 16, R.drawable.visa_curved, R.drawable.cvv_visa,
-                new int[]{4, 8, 12}, 3),
+                new int[]{4, 8, 12}, CVC_HINT),
         MASTERCARD("^5[1-5]$", "^5[1-5][0-9]{5,}$", 16, R.drawable.mastercard_curved,
-                R.drawable.cvv_mc, new int[]{4, 8, 12}, 3),
+                R.drawable.cvv_mc, new int[]{4, 8, 12}, CVC_HINT),
         AMEX("^3[47]$", "^3[47][0-9]{5,}$", 15, R.drawable.american_express_curved,
-                R.drawable.cvv_amex, new int[]{4, 10}, 4);
+                R.drawable.cvv_amex, new int[]{4, 10}, AMEX_CVC_HINT);
 
         private Pattern mPartial;
 
@@ -87,15 +90,18 @@ public class TestSwipeCardEntry extends View {
 
         private int mBreaks[];
 
+        private String mCVCHint;
+
         CardType(String guess, String whole, int length, int resource, int cvvResource,
-                int[] breaks, int cvcLength) {
+                int[] breaks, String cvcHint) {
             mPartial = Pattern.compile(guess);
             mWhole = Pattern.compile(whole);
             mLength = length;
             mResource = resource;
             mCVCResource = cvvResource;
             mBreaks = breaks;
-            mCVCLength = cvcLength;
+            mCVCLength = cvcHint.length();
+            mCVCHint = cvcHint;
         }
 
         boolean guess(CharSequence match) {
@@ -247,22 +253,6 @@ public class TestSwipeCardEntry extends View {
 
         setMeasuredDimension(resolveSizeAndState(width, widthMeasureSpec, 0),
                 resolveSizeAndState(height, heightMeasureSpec, 0));
-
-        int fourNumberTextWidth = (int) mTextPaint.measureText(NUMBER_HINT, 0, 4);
-        int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
-        int cvcTextWidth = (int) mTextPaint.measureText(CVC_HINT);
-
-        mCVCOffset = minimumTextWidth - cvcTextWidth;
-        int expirySpace = minimumTextWidth - (cvcTextWidth + fourNumberTextWidth);
-        expirySpace = (expirySpace - expiryTextWidth) / 2;
-        mExpiryOffset = expirySpace + fourNumberTextWidth;
-
-        int twelveNumberTextWidth = minimumTextWidth - fourNumberTextWidth;
-
-        mCVCOffset += minimumTextWidth + expirySpace + getPaddingLeft();
-        mExpiryOffset += minimumTextWidth + expirySpace + getPaddingLeft();
-
-        mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
     }
 
     @Override
@@ -338,7 +328,7 @@ public class TestSwipeCardEntry extends View {
             //we draw the Expiry
             if (mExpiryFormatted.length() == 0) {
                 canvas.drawText(EXPIRY_HINT, mExpiryOffset + offsetX, baseline, mHintPaint);
-                canvas.drawText(CVC_HINT, mCVCOffset + offsetX, baseline, mHintPaint);
+                canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
             } else {
                 if ((mError) && ((mMode == Mode.EXPIRYYEAR) || (mMode == Mode.EXPIRYMONTH))) {
                     canvas.drawText(mExpiryFormatted, 0, mExpiryFormatted.length(),
@@ -349,7 +339,7 @@ public class TestSwipeCardEntry extends View {
                 }
 
                 if (mCVC.length() == 0) {
-                    canvas.drawText(CVC_HINT, mCVCOffset + offsetX, baseline, mHintPaint);
+                    canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
                 } else {
                     canvas.drawText(mCVC, 0, mCVC.length(), mCVCOffset + offsetX, baseline,
                             mTextPaint);
@@ -470,7 +460,7 @@ public class TestSwipeCardEntry extends View {
         mNumberFormatted.append(number);
 
         if (mNumber.length() >= 2) {
-            setCardType(guessCardType(mNumber));
+            setCardType(guessCardType(mNumber.subSequence(0,2)));
         }
 
         for (int index = mCardType.mBreaks.length; --index >= 0; ) {
@@ -663,6 +653,7 @@ public class TestSwipeCardEntry extends View {
                     break;
             }
             mError = false;
+            checkIsCompleted();
         } else if (!mError) {
             startBlinking();
             int number = keyCode - KeyEvent.KEYCODE_0;
@@ -798,7 +789,28 @@ public class TestSwipeCardEntry extends View {
     private void validateNumber() {
         if (mCardType.validateNumber(mNumber)) {
             mMode = Mode.EXPIRYMONTH;
-            //animate to expiryMonth
+
+            //calculate the animation and animate
+            final int numberLength = mCardType.mLength;
+            final int lastBreakIndex = mCardType.mBreaks[mCardType.mBreaks.length -1];
+            final int fourNumberTextWidth = (int) mTextPaint
+                    .measureText(mNumber, lastBreakIndex, numberLength);
+            final int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
+            final int cvcTextWidth = (int) mTextPaint.measureText(mCardType.mCVCHint);
+            final int formattedNumberWidth = (int) mTextPaint.measureText(mNumberFormatted, 0,
+                    mNumberFormatted.length());
+
+            final int paddingLeft = getPaddingLeft();
+            final int imageEndPosition = paddingLeft + mBitmap.getWidth() + (2 * IMAGE_BUFFER_PADDING);
+            final int twelveNumberTextWidth = formattedNumberWidth - fourNumberTextWidth;
+            final int wholeWidth = (getMeasuredWidth() + twelveNumberTextWidth) - (paddingLeft + getPaddingRight());
+            mCVCOffset = wholeWidth - cvcTextWidth;
+
+            final int leftPosition = (imageEndPosition + formattedNumberWidth);
+            mExpiryOffset = (((mCVCOffset - leftPosition) - expiryTextWidth) / 2) + leftPosition;
+
+            mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
+
             mAnimator.start();
         } else {
             mError = true;
