@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -573,6 +574,7 @@ public class TestSwipeCardEntry extends View {
         mTextPaint.setTextSize(textSize);
         mTextPaint.setAntiAlias(true);
         mTextPaint.setColor(textColor.getDefaultColor());
+        mTextPaint.setTypeface(Typeface.MONOSPACE);
 
         mHintPaint = new TextPaint(mTextPaint);
         mHintPaint.setColor(hintColor.getDefaultColor());
