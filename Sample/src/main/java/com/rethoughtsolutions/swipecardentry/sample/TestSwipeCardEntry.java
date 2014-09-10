@@ -130,7 +130,7 @@ public class TestSwipeCardEntry extends View {
         }
 
         /**
-         * Validates the credit card number using the luhn algorithm, returns true if valid.
+         * Validates the credit card number using the Luhn algorithm, returns true if valid.
          *
          * @param number the number to validate.
          * @return true if valid.
@@ -149,7 +149,9 @@ public class TestSwipeCardEntry extends View {
                     digit *= 2;
 
                     if (digit > 9) {
-                        //sum the two digits together, the first is always 1 as the heighest number is 18
+                        //sum the two digits together,
+                        //the first is always 1 as the highest
+                        // double will be 18
                         digit = 1 + (digit % 10);
                     }
                 }
