@@ -9,15 +9,10 @@
     tools:context=".MainActivity">
 
     <com.rethoughtsolutions.swipecardentry.SwipeCardEntry
-    android:id="@+id/swipecardentry"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@android:drawable/editbox_background_normal" />
-    <!--<com.rethoughtsolutions.swipecardentry.sample.TestSwipeCardEntry-->
-        <!--android:id="@+id/swipecardentry"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:background="@android:drawable/editbox_background_normal" />-->
+        android:id="@+id/swipecardentry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:drawable/editbox_background_normal" />
 
     <Button
         android:id="@+id/paybutton"
