@@ -2,7 +2,9 @@ package com.rethoughtsolutions.swipecardentry.sample;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.rethoughtsolutions.swipecardentry.SwipeCardEntry;
 
@@ -25,6 +27,13 @@ public class MainActivity extends Activity {
             @Override
             public void onCardEntryCompleted(boolean completed) {
                 mPayButton.setEnabled(completed);
+            }
+        });
+
+        mPayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(MainActivity.this,"Pay button clicked!",Toast.LENGTH_SHORT).show();
             }
         });
     }

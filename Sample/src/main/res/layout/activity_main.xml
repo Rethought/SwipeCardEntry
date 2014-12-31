@@ -10,7 +10,7 @@
 
     <com.rethoughtsolutions.swipecardentry.SwipeCardEntry
         android:id="@+id/swipecardentry"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@android:drawable/editbox_background_normal" />
 
@@ -19,7 +19,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/swipecardentry"
-        android:enabled="false"
         android:text="@string/pay" />
 
 </RelativeLayout>
