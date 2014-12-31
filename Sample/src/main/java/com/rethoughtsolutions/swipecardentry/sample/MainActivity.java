@@ -9,9 +9,9 @@ import android.widget.Button;
 
 public class MainActivity extends Activity {
 
-    TestSwipeCardEntry mSwipeCardEntry;
+    private TestSwipeCardEntry mSwipeCardEntry;
 
-    Button mPayButton;
+    private Button mPayButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,9 +19,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mSwipeCardEntry = (TestSwipeCardEntry) findViewById(R.id.swipecardentry);
-//        mSwipeCardEntry.setNumber("424242424242424");
-//        mSwipeCardEntry.setNumber("224242424242424");
         mPayButton = (Button) findViewById(R.id.paybutton);
+
 
         mSwipeCardEntry.setListener(new TestSwipeCardEntry.Listener() {
             @Override
@@ -31,23 +30,9 @@ public class MainActivity extends Activity {
         });
     }
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    protected void onResume() {
+        super.onResume();
+        mPayButton.setEnabled(mSwipeCardEntry.isCompleted());
     }
 }
