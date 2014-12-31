@@ -70,18 +70,16 @@ public class TestSwipeCardEntry extends View {
     }
 
     private enum CardType {
-        UNKNOWN("", "", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{},
+        UNKNOWN("", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{},
                 CVC_HINT),
-        VISA("^4[0-9]$", "^4[0-9]{6,}$", 16, R.drawable.visa_curved, R.drawable.cvv_visa,
+        VISA("^4[0-9]$", 16, R.drawable.visa_curved, R.drawable.cvv_visa,
                 new int[]{4, 8, 12}, CVC_HINT),
-        MASTERCARD("^5[1-5]$", "^5[1-5][0-9]{5,}$", 16, R.drawable.mastercard_curved,
+        MASTERCARD("^5[1-5]$", 16, R.drawable.mastercard_curved,
                 R.drawable.cvv_mc, new int[]{4, 8, 12}, CVC_HINT),
-        AMEX("^3[47]$", "^3[47][0-9]{5,}$", 15, R.drawable.american_express_curved,
+        AMEX("^3[47]$", 15, R.drawable.american_express_curved,
                 R.drawable.cvv_amex, new int[]{4, 10}, AMEX_CVC_HINT);
 
         private Pattern mPartial;
-
-        private Pattern mWhole;
 
         private int mResource;
 
@@ -95,10 +93,9 @@ public class TestSwipeCardEntry extends View {
 
         private String mCVCHint;
 
-        CardType(String guess, String whole, int length, int resource, int cvvResource,
+        CardType(String guess, int length, int resource, int cvvResource,
                 int[] breaks, String cvcHint) {
             mPartial = Pattern.compile(guess);
-            mWhole = Pattern.compile(whole);
             mLength = length;
             mResource = resource;
             mCVCResource = cvvResource;
