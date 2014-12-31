@@ -2,14 +2,13 @@ package com.rethoughtsolutions.swipecardentry.sample;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Button;
 
+import com.rethoughtsolutions.swipecardentry.SwipeCardEntry;
 
 public class MainActivity extends Activity {
 
-    private TestSwipeCardEntry mSwipeCardEntry;
+    private SwipeCardEntry mSwipeCardEntry;
 
     private Button mPayButton;
 
@@ -18,11 +17,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSwipeCardEntry = (TestSwipeCardEntry) findViewById(R.id.swipecardentry);
+        mSwipeCardEntry = (SwipeCardEntry) findViewById(R.id.swipecardentry);
         mPayButton = (Button) findViewById(R.id.paybutton);
 
 
-        mSwipeCardEntry.setListener(new TestSwipeCardEntry.Listener() {
+        mSwipeCardEntry.setListener(new SwipeCardEntry.Listener() {
             @Override
             public void onCardEntryCompleted(boolean completed) {
                 mPayButton.setEnabled(completed);

@@ -1,9 +1,9 @@
 package com.rethoughtsolutions.swipecardentry;
 
+
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -28,6 +29,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 
+import java.util.Calendar;
 import java.util.regex.Pattern;
 
 /**
@@ -54,29 +56,30 @@ public class SwipeCardEntry extends View {
 
     private static final String CVC_HINT = "CVC";
 
+    private static final String AMEX_CVC_HINT = "4DBC";
+
     private static final int IMAGE_BUFFER_PADDING = 25;
 
     private static final int BLINK_DURATION = 500;
 
     private enum Mode {
         NUMBER,
-        EXPIRYMONTH,
-        EXPIRYYEAR,
+        EXPIRY_MONTH,
+        EXPIRY_YEAR,
         CVC
     }
 
     private enum CardType {
-        UNKNOWN("", "", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{}, 0),
-        VISA("^4[0-9]$", "^4[0-9]{6,}$", 16, R.drawable.visa_curved, R.drawable.cvv_visa,
-                new int[]{4, 8, 12}, 3),
-        MASTERCARD("^5[1-5]$", "^5[1-5][0-9]{5,}$", 16, R.drawable.mastercard_curved,
-                R.drawable.cvv_mc, new int[]{4, 8, 12}, 3),
-        AMEX("^3[47]$", "^3[47][0-9]{5,}$", 15, R.drawable.american_express_curved,
-                R.drawable.cvv_amex, new int[]{4, 10}, 4);
+        UNKNOWN("", 16, R.drawable.generic_bank, R.drawable.generic_bank, new int[]{},
+                CVC_HINT),
+        VISA("^4[0-9]$", 16, R.drawable.visa_curved, R.drawable.cvv_visa,
+                new int[]{4, 8, 12}, CVC_HINT),
+        MASTERCARD("^5[1-5]$", 16, R.drawable.mastercard_curved,
+                R.drawable.cvv_mc, new int[]{4, 8, 12}, CVC_HINT),
+        AMEX("^3[47]$", 15, R.drawable.american_express_curved,
+                R.drawable.cvv_amex, new int[]{4, 10}, AMEX_CVC_HINT);
 
         private Pattern mPartial;
-
-        private Pattern mWhole;
 
         private int mResource;
 
@@ -88,23 +91,21 @@ public class SwipeCardEntry extends View {
 
         private int mBreaks[];
 
-        CardType(String guess, String whole, int length, int resource, int cvvResource,
-                int[] breaks, int cvcLength) {
+        private String mCVCHint;
+
+        CardType(String guess, int length, int resource, int cvvResource,
+                int[] breaks, String cvcHint) {
             mPartial = Pattern.compile(guess);
-            mWhole = Pattern.compile(whole);
             mLength = length;
             mResource = resource;
             mCVCResource = cvvResource;
             mBreaks = breaks;
-            mCVCLength = cvcLength;
+            mCVCLength = cvcHint.length();
+            mCVCHint = cvcHint;
         }
 
         boolean guess(CharSequence match) {
             return mPartial.matcher(match).matches();
-        }
-
-        boolean validate(CharSequence match) {
-            return mWhole.matcher(match).matches();
         }
 
         boolean isCorrectLength(int length) {
@@ -118,6 +119,38 @@ public class SwipeCardEntry extends View {
                 }
             }
             return false;
+        }
+
+        /**
+         * Validates the credit card number using the Luhn algorithm, returns true if valid.
+         *
+         * @param number the number to validate.
+         * @return true if valid.
+         */
+        boolean validateNumber(CharSequence number) {
+            int sum = 0;
+            final int size = number.length();
+            final int checkDigit = number.charAt(size - 1) - '0';
+
+            boolean doubleDigit = true;
+
+            for (int index = size - 1; --index >= 0; doubleDigit = !doubleDigit) {
+                int digit = number.charAt(index) - '0';
+
+                if (doubleDigit) {
+                    digit *= 2;
+
+                    if (digit > 9) {
+                        //sum the two digits together,
+                        //the first is always 1 as the highest
+                        // double will be 18
+                        digit = 1 + (digit % 10);
+                    }
+                }
+                sum += digit;
+            }
+
+            return ((sum + checkDigit) % 10) == 0;
         }
     }
 
@@ -153,8 +186,7 @@ public class SwipeCardEntry extends View {
 
     private int mTextOffsetY = 0;
 
-    private int mTextGapWidth = 0;
-
+    private boolean mSetupSlideAfterMeasure = false;
 
     private Runnable mBlink = new Runnable() {
         @Override
@@ -179,19 +211,14 @@ public class SwipeCardEntry extends View {
 
     private Paint mBitmapPaint;
 
-//    private Card mCard;
-
     private boolean mTouchDown = false;
 
-    private
-//    public
-    SwipeCardEntry(Context context) {
+    public SwipeCardEntry(Context context) {
         super(context);
         initialize(context, null, 0);
     }
 
-    /*
-    public  SwipeCardEntry(Context context, AttributeSet attrs) {
+    public SwipeCardEntry(Context context, AttributeSet attrs) {
         super(context, attrs);
         initialize(context, attrs, android.R.style.Widget_EditText);
     }
@@ -200,7 +227,6 @@ public class SwipeCardEntry extends View {
         super(context, attrs, defStyle);
         initialize(context, attrs, defStyle);
     }
-    */
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -222,21 +248,11 @@ public class SwipeCardEntry extends View {
         setMeasuredDimension(resolveSizeAndState(width, widthMeasureSpec, 0),
                 resolveSizeAndState(height, heightMeasureSpec, 0));
 
-        int fourNumberTextWidth = (int) mTextPaint.measureText(NUMBER_HINT, 0, 4);
-        int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
-        int cvcTextWidth = (int) mTextPaint.measureText(CVC_HINT);
-
-        mCVCOffset = minimumTextWidth - cvcTextWidth;
-        int expirySpace = minimumTextWidth - (cvcTextWidth + fourNumberTextWidth);
-        expirySpace = (expirySpace - expiryTextWidth) / 2;
-        mExpiryOffset = expirySpace + fourNumberTextWidth;
-
-        int twelveNumberTextWidth = minimumTextWidth - fourNumberTextWidth;
-
-        mCVCOffset += minimumTextWidth + expirySpace + getPaddingLeft();
-        mExpiryOffset += minimumTextWidth + expirySpace + getPaddingLeft();
-
-        mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
+        if (mSetupSlideAfterMeasure) {
+            setupSlideValues();
+            mAnimator.end();
+            mSetupSlideAfterMeasure = false;
+        }
     }
 
     @Override
@@ -255,7 +271,7 @@ public class SwipeCardEntry extends View {
     public boolean onTouchEvent(MotionEvent event) {
         super.onTouchEvent(event);
 
-        switch(event.getAction()) {
+        switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mTouchDown = true;
                 return true;
@@ -312,9 +328,9 @@ public class SwipeCardEntry extends View {
             //we draw the Expiry
             if (mExpiryFormatted.length() == 0) {
                 canvas.drawText(EXPIRY_HINT, mExpiryOffset + offsetX, baseline, mHintPaint);
-                canvas.drawText(CVC_HINT, mCVCOffset + offsetX, baseline, mHintPaint);
+                canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
             } else {
-                if ((mError) && ((mMode == Mode.EXPIRYYEAR) || (mMode == Mode.EXPIRYMONTH))) {
+                if ((mError) && ((mMode == Mode.EXPIRY_YEAR) || (mMode == Mode.EXPIRY_MONTH))) {
                     canvas.drawText(mExpiryFormatted, 0, mExpiryFormatted.length(),
                             mExpiryOffset + offsetX, baseline, mErrorPaint);
                 } else {
@@ -323,7 +339,7 @@ public class SwipeCardEntry extends View {
                 }
 
                 if (mCVC.length() == 0) {
-                    canvas.drawText(CVC_HINT, mCVCOffset + offsetX, baseline, mHintPaint);
+                    canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
                 } else {
                     canvas.drawText(mCVC, 0, mCVC.length(), mCVCOffset + offsetX, baseline,
                             mTextPaint);
@@ -348,8 +364,8 @@ public class SwipeCardEntry extends View {
                             .measureText(mNumberFormatted, 0, mNumberFormatted.length());
                     cursorPosition += xPos;
                     break;
-                case EXPIRYMONTH:
-                case EXPIRYYEAR:
+                case EXPIRY_MONTH:
+                case EXPIRY_YEAR:
                     cursorPosition = mTextPaint
                             .measureText(mExpiryFormatted, 0, mExpiryFormatted.length());
                     cursorPosition += mExpiryOffset + offsetX;
@@ -426,7 +442,7 @@ public class SwipeCardEntry extends View {
         bundle.putString("expiryFormatted", mExpiryFormatted.toString());
         bundle.putString("cvc", mCVC.toString());
 
-        return super.onSaveInstanceState();
+        return bundle;
     }
 
     @Override
@@ -435,15 +451,17 @@ public class SwipeCardEntry extends View {
             Bundle bundle = (Bundle) state;
 
             mMode = Mode.values()[bundle.getInt("mode")];
-            mCardType = CardType.values()[bundle.getInt("cardType")];
-            mCompleted = bundle.getBoolean("completed");
-            mError = bundle.getBoolean("error");
+            setCardType(CardType.values()[bundle.getInt("cardType")]);
             mNumber = new SpannableStringBuilder(bundle.getString("number"));
             mNumberFormatted = new SpannableStringBuilder(bundle.getString("numberFormatted"));
+
+            mCompleted = bundle.getBoolean("completed");
+            mError = bundle.getBoolean("error");
             mMonth = new SpannableStringBuilder(bundle.getString("month"));
             mYear = new SpannableStringBuilder(bundle.getString("year"));
             mExpiryFormatted = new SpannableStringBuilder(bundle.getString("expiryFormatted"));
             mCVC = new SpannableStringBuilder(bundle.getString("cvc"));
+            mSetupSlideAfterMeasure = (mMode.ordinal() > Mode.NUMBER.ordinal());
 
             state = bundle.getParcelable("superstate");
         }
@@ -483,7 +501,15 @@ public class SwipeCardEntry extends View {
         mNumberFormatted.append(number);
 
         if (mNumber.length() >= 2) {
-            setCardType(guessCardType(mNumber));
+            CharSequence firstTwoDigits = mNumber.subSequence(0,2);
+            setCardType(guessCardType(firstTwoDigits));
+            if (mCardType == CardType.UNKNOWN) {
+                mNumber.clear();
+                mNumberFormatted.clear();
+                mNumber.append(firstTwoDigits);
+                mNumberFormatted.append(firstTwoDigits);
+                mError = true;
+            }
         }
 
         for (int index = mCardType.mBreaks.length; --index >= 0; ) {
@@ -527,7 +553,7 @@ public class SwipeCardEntry extends View {
      * @return the expiry month (1 >= expiry month >= 12), or 0 if not set.
      */
     public int getExpiryMonth() {
-        if (mMode.ordinal() > Mode.EXPIRYMONTH.ordinal()) {
+        if (mMode.ordinal() > Mode.EXPIRY_MONTH.ordinal()) {
             return Integer.parseInt(mMonth.toString());
         } else {
             return 0;
@@ -538,7 +564,7 @@ public class SwipeCardEntry extends View {
      * @return the last 2 digits of the expiry year (so 2018 would be 18), or 0 if not set.
      */
     public int getExpiryYear() {
-        if (mMode.ordinal() > Mode.EXPIRYYEAR.ordinal()) {
+        if (mMode.ordinal() > Mode.EXPIRY_YEAR.ordinal()) {
             return Integer.parseInt(mYear.toString());
         } else {
             return 0;
@@ -555,13 +581,16 @@ public class SwipeCardEntry extends View {
         ColorStateList textColor = null;
         ColorStateList hintColor = null;
         int errorColor = Color.RED;
-        int textSize = 15; //context.getTheme().applyStyle().getTextAppearance.SM;
+        int textSize = convertSPToPixels(context, 15);
 
         if (attrs != null) {
-            TypedArray attributes = context.obtainStyledAttributes(attrs, R.styleable.SwipeCardEntry, defStyle, 0);
-            textColor = attributes.getColorStateList(R.styleable.SwipeCardEntry_android_textColor);
-            textSize = attributes.getDimensionPixelSize(R.styleable.SwipeCardEntry_android_textSize,
-                    textSize);
+            TypedArray attributes = context
+                    .obtainStyledAttributes(attrs, R.styleable.SwipeCardEntry, defStyle, 0);
+            textColor = attributes
+                    .getColorStateList(R.styleable.SwipeCardEntry_android_textColor);
+            textSize = attributes
+                    .getDimensionPixelSize(R.styleable.SwipeCardEntry_android_textSize,
+                            textSize);
             hintColor = attributes.getColorStateList(
                     R.styleable.SwipeCardEntry_android_textColorHint);
             attributes.recycle();
@@ -586,24 +615,18 @@ public class SwipeCardEntry extends View {
             }
         });
 
-        final Resources resources = getResources();
-
         mTextPaint = new TextPaint();
-//        mTextPaint.setTextSize(resources.getDimension(R.dimen.textsize_normal));
-//        mTextPaint.setTextSize(resources.getDimension(R.dimen.textsize_normal));
         mTextPaint.setTextSize(textSize);
         mTextPaint.setAntiAlias(true);
         mTextPaint.setColor(textColor.getDefaultColor());
-//        mTextPaint.setColor(errorColor);
+        mTextPaint.setTypeface(Typeface.MONOSPACE);
 
         mHintPaint = new TextPaint(mTextPaint);
-//        mHintPaint.setColor(resources.getColor(android.R.color.darker_gray));
         mHintPaint.setColor(hintColor.getDefaultColor());
 
         mErrorPaint = new TextPaint(mTextPaint);
         mErrorPaint.setColor(errorColor);
 
-//        mCard = new Card("", 00, 00, "");
         mNumber = new SpannableStringBuilder();
         mMonth = new SpannableStringBuilder();
         mYear = new SpannableStringBuilder();
@@ -637,13 +660,12 @@ public class SwipeCardEntry extends View {
                 case CVC:
                     if (mCVC.length() > 0) {
                         removeLastChar(mCVC);
-                        checkIsCompleted();
                         break;
                     } else {
                         //we are going back to number mode:
-                        mMode = Mode.EXPIRYYEAR;
+                        mMode = Mode.EXPIRY_YEAR;
                     }
-                case EXPIRYYEAR:
+                case EXPIRY_YEAR:
                     if (mYear.length() > 0) {
                         removeLastChar(mYear);
                         removeLastChar(mExpiryFormatted);
@@ -651,9 +673,9 @@ public class SwipeCardEntry extends View {
                     } else {
                         //we are going back to number mode:
                         removeLastChar(mExpiryFormatted);
-                        mMode = Mode.EXPIRYMONTH;
+                        mMode = Mode.EXPIRY_MONTH;
                     }
-                case EXPIRYMONTH:
+                case EXPIRY_MONTH:
                     if (mMonth.length() > 0) {
                         removeLastChar(mMonth);
                         removeLastChar(mExpiryFormatted);
@@ -678,6 +700,7 @@ public class SwipeCardEntry extends View {
                     break;
             }
             mError = false;
+            checkIsCompleted();
         } else if (!mError) {
             startBlinking();
             int number = keyCode - KeyEvent.KEYCODE_0;
@@ -695,11 +718,14 @@ public class SwipeCardEntry extends View {
                             //do nothing
                         } else if (length == 2) {
                             setCardType(guessCardType(mNumber));
+                            if (mCardType == CardType.UNKNOWN) {
+                                mError = true;
+                            }
                         } else if (mCardType.isCorrectLength(length)) {
                             validateNumber();
                         }
                         break;
-                    case EXPIRYMONTH:
+                    case EXPIRY_MONTH:
                         if (mMonth.length() == 0) {
                             if ((number == 0) || (number == 1)) {
                                 mMonth.append(numberAsString);
@@ -717,36 +743,45 @@ public class SwipeCardEntry extends View {
                             }
 
                             if (mMonth.length() == 2) {
-//                                mCard.setExpMonth(Integer.parseInt(mMonth.toString()));
-//                                if (mCard.validateExpMonth()) {
-//                                    mExpiryFormatted.append('/');
-//                                    mMode = Mode.EXPIRYYEAR;
-//                                }
+                                int month = Integer.parseInt(mMonth.toString());
+                                if ((month >= 1) && (month <= 12)) {
+                                    mExpiryFormatted.append('/');
+                                    mMode = Mode.EXPIRY_YEAR;
+                                }
                             }
 
                         }
                         break;
-                    case EXPIRYYEAR:
-                        if (mYear.length() == 0) {
+                    case EXPIRY_YEAR:
+                        final int yearLength = mYear.length();
+
+                        if (yearLength == 0) {
                             if (number >= 1) {
                                 mYear.append(numberAsString);
                                 mExpiryFormatted.append(numberAsString);
                             }
-                        } else {
-                            if (mYear.charAt(0) == '1') {
-                                if (number >= 4) {
-                                    mYear.append(numberAsString);
-                                }
-                            } else {
-                                mYear.append(numberAsString);
-                            }
+                        } else if (yearLength == 1) {
+                            mYear.append(numberAsString);
 
-                            if (mYear.length() == 2) {
-//                                mCard.setExpYear(2000 + Integer.parseInt(mYear.toString()));
-//                                if (mCard.validateExpYear()) {
-//                                    mExpiryFormatted.append(numberAsString);
-//                                    mMode = Mode.CVC;
-//                                }
+                            Calendar calendar = Calendar.getInstance();
+                            int actualYear = calendar.get(Calendar.YEAR);
+                            int enteredYear = 2000 + Integer.parseInt(mYear.toString());
+
+                            if (actualYear == enteredYear) {
+                                //validate the month
+                                int actualMonth = calendar.get(Calendar.MONTH) + 1;
+                                int enteredMonth = Integer.parseInt(mMonth.toString());
+                                if (actualMonth <= enteredMonth) {
+                                    mExpiryFormatted.append(numberAsString);
+                                    mMode = Mode.CVC;
+                                } else {
+                                    removeLastChar(mYear);
+                                }
+                            } else if (actualYear < enteredYear) {
+                                mExpiryFormatted.append(numberAsString);
+                                mMode = Mode.CVC;
+                            } else {
+                                removeLastChar(mYear);
                             }
                         }
                         break;
@@ -770,7 +805,7 @@ public class SwipeCardEntry extends View {
             }
         }
 
-        return CardType.MASTERCARD;
+        return CardType.UNKNOWN;
     }
 
     private void setCardType(CardType type) {
@@ -801,17 +836,39 @@ public class SwipeCardEntry extends View {
         postInvalidate();
     }
 
+    private int setupSlideValues() {
+        //calculate the animation and animate
+        final int numberLength = mCardType.mLength;
+        final int lastBreakIndex = mCardType.mBreaks[mCardType.mBreaks.length -1];
+        final int fourNumberTextWidth = (int) mTextPaint
+                .measureText(mNumber, lastBreakIndex, numberLength);
+        final int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
+        final int cvcTextWidth = (int) mTextPaint.measureText(mCardType.mCVCHint);
+        final int formattedNumberWidth = (int) mTextPaint.measureText(mNumberFormatted, 0,
+                mNumberFormatted.length());
+
+        final int paddingLeft = getPaddingLeft();
+        final int imageEndPosition = paddingLeft + mBitmap.getWidth() + (2 * IMAGE_BUFFER_PADDING);
+        final int twelveNumberTextWidth = formattedNumberWidth - fourNumberTextWidth;
+        final int wholeWidth = (getMeasuredWidth() + twelveNumberTextWidth) - (paddingLeft + getPaddingRight());
+        mCVCOffset = wholeWidth - cvcTextWidth;
+
+        final int leftPosition = (imageEndPosition + formattedNumberWidth);
+        mExpiryOffset = (((mCVCOffset - leftPosition) - expiryTextWidth) / 2) + leftPosition;
+
+        mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
+
+        return twelveNumberTextWidth;
+    }
+
     private void validateNumber() {
-        /*
-        mCard.setNumber(mNumber.toString());
-        if (mCard.validateNumber()) {
-            mMode = Mode.EXPIRYMONTH;
-            //animate to expiryMonth
+        if (mCardType.validateNumber(mNumber)) {
+            mMode = Mode.EXPIRY_MONTH;
+            setupSlideValues();
             mAnimator.start();
         } else {
             mError = true;
         }
-        */
     }
 
     private void checkIsCompleted() {
@@ -822,5 +879,10 @@ public class SwipeCardEntry extends View {
                 mListener.onCardEntryCompleted(mCompleted);
             }
         }
+    }
+
+    private static int convertSPToPixels(Context context, int sp) {
+        float scaledDensity = context.getResources().getDisplayMetrics().scaledDensity;
+        return Math.round(scaledDensity * sp);
     }
 }
