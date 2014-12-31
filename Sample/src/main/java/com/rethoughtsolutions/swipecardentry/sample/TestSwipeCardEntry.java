@@ -64,8 +64,8 @@ public class TestSwipeCardEntry extends View {
 
     private enum Mode {
         NUMBER,
-        EXPIRYMONTH,
-        EXPIRYYEAR,
+        EXPIRY_MONTH,
+        EXPIRY_YEAR,
         CVC
     }
 
@@ -109,13 +109,6 @@ public class TestSwipeCardEntry extends View {
 
         boolean guess(CharSequence match) {
             return mPartial.matcher(match).matches();
-        }
-
-        boolean validate(CharSequence match) {
-            if (mWhole.matcher(match).matches()) {
-                return validateNumber(match);
-            }
-            return false;
         }
 
         boolean isCorrectLength(int length) {
@@ -197,9 +190,6 @@ public class TestSwipeCardEntry extends View {
     private int mTextOffsetY = 0;
 
     private boolean mSetupSlideAfterMeasure = false;
-
-//    private int mTextGapWidth = 0;
-
 
     private Runnable mBlink = new Runnable() {
         @Override
@@ -343,7 +333,7 @@ public class TestSwipeCardEntry extends View {
                 canvas.drawText(EXPIRY_HINT, mExpiryOffset + offsetX, baseline, mHintPaint);
                 canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
             } else {
-                if ((mError) && ((mMode == Mode.EXPIRYYEAR) || (mMode == Mode.EXPIRYMONTH))) {
+                if ((mError) && ((mMode == Mode.EXPIRY_YEAR) || (mMode == Mode.EXPIRY_MONTH))) {
                     canvas.drawText(mExpiryFormatted, 0, mExpiryFormatted.length(),
                             mExpiryOffset + offsetX, baseline, mErrorPaint);
                 } else {
@@ -377,8 +367,8 @@ public class TestSwipeCardEntry extends View {
                             .measureText(mNumberFormatted, 0, mNumberFormatted.length());
                     cursorPosition += xPos;
                     break;
-                case EXPIRYMONTH:
-                case EXPIRYYEAR:
+                case EXPIRY_MONTH:
+                case EXPIRY_YEAR:
                     cursorPosition = mTextPaint
                             .measureText(mExpiryFormatted, 0, mExpiryFormatted.length());
                     cursorPosition += mExpiryOffset + offsetX;
@@ -566,7 +556,7 @@ public class TestSwipeCardEntry extends View {
      * @return the expiry month (1 >= expiry month >= 12), or 0 if not set.
      */
     public int getExpiryMonth() {
-        if (mMode.ordinal() > Mode.EXPIRYMONTH.ordinal()) {
+        if (mMode.ordinal() > Mode.EXPIRY_MONTH.ordinal()) {
             return Integer.parseInt(mMonth.toString());
         } else {
             return 0;
@@ -577,7 +567,7 @@ public class TestSwipeCardEntry extends View {
      * @return the last 2 digits of the expiry year (so 2018 would be 18), or 0 if not set.
      */
     public int getExpiryYear() {
-        if (mMode.ordinal() > Mode.EXPIRYYEAR.ordinal()) {
+        if (mMode.ordinal() > Mode.EXPIRY_YEAR.ordinal()) {
             return Integer.parseInt(mYear.toString());
         } else {
             return 0;
@@ -594,8 +584,7 @@ public class TestSwipeCardEntry extends View {
         ColorStateList textColor = null;
         ColorStateList hintColor = null;
         int errorColor = Color.RED;
-        int textSize = SpToPixels(context,
-                15); //context.getTheme().applyStyle().getTextAppearance.SM;
+        int textSize = convertSPToPixels(context, 15);
 
         if (attrs != null) {
             TypedArray attributes = context
@@ -628,8 +617,6 @@ public class TestSwipeCardEntry extends View {
                 return true;
             }
         });
-
-        final Resources resources = getResources();
 
         mTextPaint = new TextPaint();
         mTextPaint.setTextSize(textSize);
@@ -679,9 +666,9 @@ public class TestSwipeCardEntry extends View {
                         break;
                     } else {
                         //we are going back to number mode:
-                        mMode = Mode.EXPIRYYEAR;
+                        mMode = Mode.EXPIRY_YEAR;
                     }
-                case EXPIRYYEAR:
+                case EXPIRY_YEAR:
                     if (mYear.length() > 0) {
                         removeLastChar(mYear);
                         removeLastChar(mExpiryFormatted);
@@ -689,9 +676,9 @@ public class TestSwipeCardEntry extends View {
                     } else {
                         //we are going back to number mode:
                         removeLastChar(mExpiryFormatted);
-                        mMode = Mode.EXPIRYMONTH;
+                        mMode = Mode.EXPIRY_MONTH;
                     }
-                case EXPIRYMONTH:
+                case EXPIRY_MONTH:
                     if (mMonth.length() > 0) {
                         removeLastChar(mMonth);
                         removeLastChar(mExpiryFormatted);
@@ -741,7 +728,7 @@ public class TestSwipeCardEntry extends View {
                             validateNumber();
                         }
                         break;
-                    case EXPIRYMONTH:
+                    case EXPIRY_MONTH:
                         if (mMonth.length() == 0) {
                             if ((number == 0) || (number == 1)) {
                                 mMonth.append(numberAsString);
@@ -762,13 +749,13 @@ public class TestSwipeCardEntry extends View {
                                 int month = Integer.parseInt(mMonth.toString());
                                 if ((month >= 1) && (month <= 12)) {
                                     mExpiryFormatted.append('/');
-                                    mMode = Mode.EXPIRYYEAR;
+                                    mMode = Mode.EXPIRY_YEAR;
                                 }
                             }
 
                         }
                         break;
-                    case EXPIRYYEAR:
+                    case EXPIRY_YEAR:
                         final int yearLength = mYear.length();
 
                         if (yearLength == 0) {
@@ -879,7 +866,7 @@ public class TestSwipeCardEntry extends View {
 
     private void validateNumber() {
         if (mCardType.validateNumber(mNumber)) {
-            mMode = Mode.EXPIRYMONTH;
+            mMode = Mode.EXPIRY_MONTH;
             setupSlideValues();
             mAnimator.start();
         } else {
@@ -897,7 +884,7 @@ public class TestSwipeCardEntry extends View {
         }
     }
 
-    private static int SpToPixels(Context context, int sp) {
+    private static int convertSPToPixels(Context context, int sp) {
         float scaledDensity = context.getResources().getDisplayMetrics().scaledDensity;
         return Math.round(scaledDensity * sp);
     }
