@@ -11,8 +11,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcelable;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.SpannableStringBuilder;
@@ -407,6 +409,45 @@ public class SwipeCardEntry extends View {
         } else {
             stopBlinking();
         }
+    }
+
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("superstate",super.onSaveInstanceState());
+        bundle.putInt("mode", mMode.ordinal());
+        bundle.putInt("cardType", mCardType.ordinal());
+        bundle.putBoolean("completed", mCompleted);
+        bundle.putBoolean("error", mError);
+        bundle.putString("number", mNumber.toString());
+        bundle.putString("numberFormatted", mNumberFormatted.toString());
+        bundle.putString("month", mMonth.toString());
+        bundle.putString("year", mYear.toString());
+        bundle.putString("expiryFormatted", mExpiryFormatted.toString());
+        bundle.putString("cvc", mCVC.toString());
+
+        return super.onSaveInstanceState();
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (state instanceof Bundle) {
+            Bundle bundle = (Bundle) state;
+
+            mMode = Mode.values()[bundle.getInt("mode")];
+            mCardType = CardType.values()[bundle.getInt("cardType")];
+            mCompleted = bundle.getBoolean("completed");
+            mError = bundle.getBoolean("error");
+            mNumber = new SpannableStringBuilder(bundle.getString("number"));
+            mNumberFormatted = new SpannableStringBuilder(bundle.getString("numberFormatted"));
+            mMonth = new SpannableStringBuilder(bundle.getString("month"));
+            mYear = new SpannableStringBuilder(bundle.getString("year"));
+            mExpiryFormatted = new SpannableStringBuilder(bundle.getString("expiryFormatted"));
+            mCVC = new SpannableStringBuilder(bundle.getString("cvc"));
+
+            state = bundle.getParcelable("superstate");
+        }
+        super.onRestoreInstanceState(state);
     }
 
     /**

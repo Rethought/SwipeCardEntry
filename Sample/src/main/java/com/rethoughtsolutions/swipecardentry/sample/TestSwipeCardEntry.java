@@ -12,8 +12,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcelable;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.SpannableStringBuilder;
@@ -194,7 +196,9 @@ public class TestSwipeCardEntry extends View {
 
     private int mTextOffsetY = 0;
 
-    private int mTextGapWidth = 0;
+    private boolean mSetupSlideAfterMeasure = false;
+
+//    private int mTextGapWidth = 0;
 
 
     private Runnable mBlink = new Runnable() {
@@ -256,6 +260,12 @@ public class TestSwipeCardEntry extends View {
 
         setMeasuredDimension(resolveSizeAndState(width, widthMeasureSpec, 0),
                 resolveSizeAndState(height, heightMeasureSpec, 0));
+
+        if (mSetupSlideAfterMeasure) {
+            setupSlideValues();
+            mAnimator.end();
+            mSetupSlideAfterMeasure = false;
+        }
     }
 
     @Override
@@ -430,6 +440,47 @@ public class TestSwipeCardEntry extends View {
         }
     }
 
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("superstate",super.onSaveInstanceState());
+        bundle.putInt("mode", mMode.ordinal());
+        bundle.putInt("cardType", mCardType.ordinal());
+        bundle.putBoolean("completed", mCompleted);
+        bundle.putBoolean("error", mError);
+        bundle.putString("number", mNumber.toString());
+        bundle.putString("numberFormatted", mNumberFormatted.toString());
+        bundle.putString("month", mMonth.toString());
+        bundle.putString("year", mYear.toString());
+        bundle.putString("expiryFormatted", mExpiryFormatted.toString());
+        bundle.putString("cvc", mCVC.toString());
+
+        return bundle;
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (state instanceof Bundle) {
+            Bundle bundle = (Bundle) state;
+
+            mMode = Mode.values()[bundle.getInt("mode")];
+            setCardType(CardType.values()[bundle.getInt("cardType")]);
+            mNumber = new SpannableStringBuilder(bundle.getString("number"));
+            mNumberFormatted = new SpannableStringBuilder(bundle.getString("numberFormatted"));
+
+            mCompleted = bundle.getBoolean("completed");
+            mError = bundle.getBoolean("error");
+            mMonth = new SpannableStringBuilder(bundle.getString("month"));
+            mYear = new SpannableStringBuilder(bundle.getString("year"));
+            mExpiryFormatted = new SpannableStringBuilder(bundle.getString("expiryFormatted"));
+            mCVC = new SpannableStringBuilder(bundle.getString("cvc"));
+            mSetupSlideAfterMeasure = (mMode.ordinal() > Mode.NUMBER.ordinal());
+
+            state = bundle.getParcelable("superstate");
+        }
+        super.onRestoreInstanceState(state);
+    }
+
     /**
      * Replaces the current listener (if any) with the given listener.
      *
@@ -463,13 +514,13 @@ public class TestSwipeCardEntry extends View {
         mNumberFormatted.append(number);
 
         if (mNumber.length() >= 2) {
-            CharSequence firstTwoDigis = mNumber.subSequence(0,2);
-            setCardType(guessCardType(firstTwoDigis));
+            CharSequence firstTwoDigits = mNumber.subSequence(0,2);
+            setCardType(guessCardType(firstTwoDigits));
             if (mCardType == CardType.UNKNOWN) {
                 mNumber.clear();
                 mNumberFormatted.clear();
-                mNumber.append(firstTwoDigis);
-                mNumberFormatted.append(firstTwoDigis);
+                mNumber.append(firstTwoDigits);
+                mNumberFormatted.append(firstTwoDigits);
                 mError = true;
             }
         }
@@ -801,31 +852,35 @@ public class TestSwipeCardEntry extends View {
         postInvalidate();
     }
 
+    private int setupSlideValues() {
+        //calculate the animation and animate
+        final int numberLength = mCardType.mLength;
+        final int lastBreakIndex = mCardType.mBreaks[mCardType.mBreaks.length -1];
+        final int fourNumberTextWidth = (int) mTextPaint
+                .measureText(mNumber, lastBreakIndex, numberLength);
+        final int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
+        final int cvcTextWidth = (int) mTextPaint.measureText(mCardType.mCVCHint);
+        final int formattedNumberWidth = (int) mTextPaint.measureText(mNumberFormatted, 0,
+                mNumberFormatted.length());
+
+        final int paddingLeft = getPaddingLeft();
+        final int imageEndPosition = paddingLeft + mBitmap.getWidth() + (2 * IMAGE_BUFFER_PADDING);
+        final int twelveNumberTextWidth = formattedNumberWidth - fourNumberTextWidth;
+        final int wholeWidth = (getMeasuredWidth() + twelveNumberTextWidth) - (paddingLeft + getPaddingRight());
+        mCVCOffset = wholeWidth - cvcTextWidth;
+
+        final int leftPosition = (imageEndPosition + formattedNumberWidth);
+        mExpiryOffset = (((mCVCOffset - leftPosition) - expiryTextWidth) / 2) + leftPosition;
+
+        mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
+
+        return twelveNumberTextWidth;
+    }
+
     private void validateNumber() {
         if (mCardType.validateNumber(mNumber)) {
             mMode = Mode.EXPIRYMONTH;
-
-            //calculate the animation and animate
-            final int numberLength = mCardType.mLength;
-            final int lastBreakIndex = mCardType.mBreaks[mCardType.mBreaks.length -1];
-            final int fourNumberTextWidth = (int) mTextPaint
-                    .measureText(mNumber, lastBreakIndex, numberLength);
-            final int expiryTextWidth = (int) mTextPaint.measureText(EXPIRY_HINT);
-            final int cvcTextWidth = (int) mTextPaint.measureText(mCardType.mCVCHint);
-            final int formattedNumberWidth = (int) mTextPaint.measureText(mNumberFormatted, 0,
-                    mNumberFormatted.length());
-
-            final int paddingLeft = getPaddingLeft();
-            final int imageEndPosition = paddingLeft + mBitmap.getWidth() + (2 * IMAGE_BUFFER_PADDING);
-            final int twelveNumberTextWidth = formattedNumberWidth - fourNumberTextWidth;
-            final int wholeWidth = (getMeasuredWidth() + twelveNumberTextWidth) - (paddingLeft + getPaddingRight());
-            mCVCOffset = wholeWidth - cvcTextWidth;
-
-            final int leftPosition = (imageEndPosition + formattedNumberWidth);
-            mExpiryOffset = (((mCVCOffset - leftPosition) - expiryTextWidth) / 2) + leftPosition;
-
-            mAnimator.setFloatValues(0.0f, 0 - twelveNumberTextWidth);
-
+            setupSlideValues();
             mAnimator.start();
         } else {
             mError = true;
