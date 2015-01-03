@@ -18,6 +18,8 @@ SwipeCardEntry really is just a space saving, intuitive UI for card entry:
 Installation
 ------------
 
+Just copy over the SwipeCardEntryLibrary to your AndroidStudio project & add as a dependency.
+
 General use
 -----------
 
