@@ -307,14 +307,14 @@ public class SwipeCardEntry extends View {
 
         int paddingLeft = getPaddingLeft();
         float xPos = paddingLeft + mBitmap.getWidth() + (2 * IMAGE_BUFFER_PADDING);
-        canvas.clipRect(xPos, 0, getWidth(), getHeight());
+        canvas.clipRect(xPos, 0, getWidth() - 10, getHeight()); //clip 10 px to the right so this doesn't overdraw the background
         float offsetX = (Float) mAnimator.getAnimatedValue();
         xPos += offsetX;
-
         int baseline = getPaddingTop() + mTextOffsetY - (int) mTextPaint.ascent();
 
         int length = mNumberFormatted.length();
         if (length == 0) {
+            mHintPaint.setAlpha(0xFF);
             canvas.drawText(NUMBER_HINT, xPos, baseline, mHintPaint);
         } else {
             if ((mError) && (mMode == Mode.NUMBER)) {
@@ -324,8 +324,9 @@ public class SwipeCardEntry extends View {
             }
         }
 
-        if (mMode != Mode.NUMBER) {
-            //we draw the Expiry
+        if ((mAnimator.isRunning()) || (mMode != Mode.NUMBER)) {
+            mHintPaint.setAlpha((int) (mAnimator.getAnimatedFraction() * 0xFF));
+
             if (mExpiryFormatted.length() == 0) {
                 canvas.drawText(EXPIRY_HINT, mExpiryOffset + offsetX, baseline, mHintPaint);
                 canvas.drawText(mCardType.mCVCHint, mCVCOffset + offsetX, baseline, mHintPaint);
