@@ -13,7 +13,7 @@ the Android Platform. In a nutshell SwipeCardEntry has:
 
 SwipeCardEntry really is just a space saving, intuitive UI for card entry:
 
-[UI Demo](demo.gif)
+.. image:: demo.gif
 
 Installation
 ------------
