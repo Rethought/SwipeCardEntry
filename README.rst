@@ -25,20 +25,24 @@ General use
 
 Simply add the view to your layout file:
 
-<com.rethoughtsolutions.swipecardentry.SwipeCardEntry
-    android:id="@+id/swipecardentry"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:background="@android:drawable/editbox_background_normal" />
+.. code:: xml
+
+    <com.rethoughtsolutions.swipecardentry.SwipeCardEntry
+        android:id="@+id/swipecardentry"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:drawable/editbox_background_normal" />
 
 And add a listener for when the user has successfully entered a credit card:
 
-findViewById(R.id.swipecard).setListener(new SwipeCardEntry.Listener() {
-    @Override
-    public void onCardEntryCompleted(boolean completed) {
-        //...
-    }
-});
+.. code:: java
+
+    findViewById(R.id.swipecard).setListener(new SwipeCardEntry.Listener() {
+        @Override
+        public void onCardEntryCompleted(boolean completed) {
+            //...
+        }
+    });
 
 
 
