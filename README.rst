@@ -37,7 +37,7 @@ And add a listener for when the user has successfully entered a credit card:
 
 .. code:: java
 
-    findViewById(R.id.swipecard).setListener(new SwipeCardEntry.Listener() {
+    findViewById(R.id.swipecardentry).setListener(new SwipeCardEntry.Listener() {
         @Override
         public void onCardEntryCompleted(boolean completed) {
             //...
